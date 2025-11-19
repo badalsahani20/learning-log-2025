@@ -117,3 +117,69 @@ SELECT title, translator FROM library WHERE translator IS NULL;
 **Q:** Check the list of books that do have a translation.
 **Query:**
 SELECT title, translator FROM library WHERE translator IS NOT NULL;
+
+# 🔍 LIKE:
+Used to search for patterns in text columns.  
+It helps when you do not know the full value — just part of it.
+
+**Pattern Symbols:**  
+% -> matches any number of characters (0 or more).  
+_ -> matches exactly one character.
+
+Q: Books whose title starts with "Harry".  
+Query:
+SELECT title FROM library WHERE title LIKE 'Harry%';
+
+Q: Books whose title ends with "King".  
+Query:
+SELECT title FROM library WHERE title LIKE '%King';
+
+Q: Books where a four letter word starting with "K".  
+Query:
+SELECT title FROM library WHERE title LIKE 'K____';
+
+---
+
+### _ (Underscore) — SQL Wildcard:
+The `_` wildcard matches **exactly ONE** character.
+
+Query:
+SELECT title FROM library WHERE title LIKE '____';
+
+Query:
+SELECT title FROM library WHERE title LIKE 'K___';
+
+Query:
+SELECT title FROM library WHERE title LIKE '__a%';
+
+---
+
+# ⚖ Comparison Operators:
+
+| Operator | Meaning |
+|----------|-----------------------------|
+| =        | Equal to (case sensitive)   |
+| != or <> | Not equal to                |
+| >        | Greater than                |
+| <        | Less than                   |
+| >=       | Greater than or equal to    |
+| <=       | Less than or equal to       |
+
+Too Long:
+SELECT title, year FROM library WHERE year = 2019 OR year = 2020 OR year = 2021 OR year = 2022;
+
+Better:
+SELECT title, year FROM library WHERE year >= 2019 AND year <= 2022;
+
+BETWEEN:
+SELECT title, year FROM library WHERE year BETWEEN 2019 AND 2022;
+
+---
+
+# 📌 ORDER BY:
+Ascending:
+SELECT title, rating FROM library ORDER BY rating LIMIT 10;
+
+Descending:
+SELECT title, rating FROM library ORDER BY rating DESC LIMIT 10;
+
