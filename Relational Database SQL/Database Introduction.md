@@ -183,3 +183,194 @@ SELECT title, rating FROM library ORDER BY rating LIMIT 10;
 Descending:
 SELECT title, rating FROM library ORDER BY rating DESC LIMIT 10;
 
+# 📚 SQL Notes – Aggregate Functions
+
+---
+
+## ✅ What Are Aggregate Functions?
+
+An **aggregate operation** takes **multiple rows** and produces **a single summarized value**.
+**Aggregate = collect many → return one**
+
+Examples:
+- Many book prices → one average price
+- Many book pages → one total page count
+- Many publication years → one earliest year
+
+---
+
+## 📌 Common Aggregate Functions (Library Example)
+
+| Function  | Meaning                 | Example (Library)                          | What It Returns             |
+|-----------|-------------------------|--------------------------------------------|-----------------------------|
+| COUNT()   | Counts number of rows   | `SELECT COUNT(*) FROM library;`            | Total number of books       |
+| AVG()     | Average value           | `SELECT AVG(price) FROM library;`          | Average price               |
+| MIN()     | Smallest value          | `SELECT MIN(year) FROM library;`           | Earliest published year     |
+| MAX()     | Largest value           | `SELECT MAX(pages) FROM library;`          | Book with the most pages    |
+| SUM()     | Adds values in column   | `SELECT SUM(pages) FROM library;`          | Total pages in library      |
+
+✔ These functions **return a single value**
+✔ They are used inside **SELECT queries**
+✔ Often used with **GROUP BY**
+
+---
+
+## ⚙ AVG + ROUND + ALIAS (Full Flow)
+
+### ❌ 1. Raw AVG gives long decimal values:
+```sql
+SELECT AVG(price) FROM library;
+```
+⚠ Might return: `3.234254234242`
+
+---
+
+### ✔ 2. Use ROUND() to limit decimal places:
+```sql
+SELECT ROUND(AVG(price), 2) FROM library;
+```
+Returns: `3.23`
+
+---
+
+### ❌ 3. Problem: The column name becomes ugly:
+Example output column name:
+```
+ROUND(AVG(price),2)
+```
+Not good for reports or frontend.
+
+---
+
+### ✔ 4. Solution: Use AS (alias) to rename column:
+```sql
+SELECT ROUND(AVG(price), 2) AS average_price FROM library;
+```
+
+**Result:**
+| average_price |
+|----------------|
+| 3.23 |
+
+---
+
+## 🧠 Analogy (Easy to Remember)
+
+Imagine you are looking at 100 books and want **ONE answer**:
+
+| Question | Aggregate Function |
+|----------|--------------------|
+| “How many books?” | COUNT |
+| “What is the average price?” | AVG |
+| “What is the earliest book?” | MIN |
+| “What has the most pages?” | MAX |
+| “What is the total pages if stacked?” | SUM |
+
+All these are **aggregate operations**.
+
+---
+
+## 🔢 COUNT():
+
+```sql
+SELECT COUNT(*) FROM library;
+```
+Returns total items, e.g., `78`
+
+⚠ Interesting Fact:
+```sql
+SELECT COUNT(translator) FROM library;
+```
+Returns `76` instead of `78`
+
+**Why?**  
+- `COUNT(*)` counts **all rows** (even NULL)
+- `COUNT(column)` ignores **NULL values**
+
+---
+
+## 🔽 MIN() & MAX()
+
+```sql
+SELECT MIN(rating) FROM library;  -- 3.05
+SELECT MAX(rating) FROM library;  -- 4.60
+```
+
+### ❓ How does it work with **strings**?
+
+```sql
+SELECT MAX(title), MIN(title) FROM library;
+```
+
+Result:
+- MAX → `Wretchedness`
+- MIN → `A New Name: Septology VI-VII`
+
+**How?**
+SQL compares strings in **alphabetical order**:
+```
+A < B < C < ... < Z
+```
+
+| Function | Meaning |
+|----------|------------------------------|
+| MIN(string) | Returns alphabetically first |
+| MAX(string) | Returns alphabetically last  |
+
+---
+
+## ➕ SUM()
+
+```sql
+SELECT SUM(votes) FROM library;  -- 60412
+```
+Returns total value of the column.
+
+---
+
+## 🧹 DISTINCT – Remove Duplicates
+
+Returns only **unique values** from a column.
+
+### Example 1: Unique Authors
+```sql
+SELECT DISTINCT author FROM library;
+```
+
+### Example 2: Unique Genres
+```sql
+SELECT DISTINCT genre FROM library;
+```
+
+Example output:
+```
+Fiction
+Fantasy
+Mystery
+Romance
+Philosophy
+```
+No duplicates — just unique categories.
+
+---
+
+## ✔ In Summary (For Revision)
+
+```markdown
+Aggregate Functions:
+- COUNT() → Total number of rows
+- AVG() → Average of column values
+- MIN() → Smallest value
+- MAX() → Largest value
+- SUM() → Total sum of column values
+
+Use ROUND() to format AVG
+Use AS to rename column
+DISTINCT removes duplicate values
+COUNT(*) counts NULL rows, COUNT(col) does NOT
+```
+
+---
+
+📌 **This file is ready for GitHub push.**
+
