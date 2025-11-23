@@ -372,5 +372,5 @@ COUNT(*) counts NULL rows, COUNT(col) does NOT
 
 ---
 
-📌 **This file is ready for GitHub push.**
+
 
