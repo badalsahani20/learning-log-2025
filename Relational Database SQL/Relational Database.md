@@ -74,3 +74,185 @@ SELECT columns
 FROM table1
 INNER JOIN table2
   ON table1.column = table2.column;
+
+### 👉 **LEFT JOIN**
+Give me **all the book cards**, and **if the author exists**, attach them.
+If not, put **NULL**.
+
+```sql
+SELECT *
+FROM "sea_lions"
+LEFT JOIN "migrations"
+ON "migrations"."id" = "sea_lions"."id";
+```
+
+---
+
+### 👉 **RIGHT JOIN**
+Returns **all rows from the RIGHT table** & matches from the LEFT table.
+
+```sql
+SELECT *
+FROM "sea_lions"
+RIGHT JOIN "migrations"
+ON "migrations"."id" = "sea_lions"."id";
+```
+
+---
+
+### 👉 **FULL JOIN**
+Give me **all cards from BOTH tables**,
+match them if possible—otherwise **NULL** on missing side.
+
+---
+
+### 👉 **CROSS JOIN**
+Combine **every book with every author**.
+Like making **all possible pairs**.
+
+---
+
+## 📘 Example Tables
+
+### `books` Table
+
+| id | title      | author_id |
+|----|------------|-----------|
+| 1  | Dune       | 3         |
+| 2  | Mistborn   | 4         |
+| 3  | The Hobbit | 5         |
+
+### `authors` Table
+
+| author_id | name              |
+|-----------|-------------------|
+| 3         | Frank Herbert     |
+| 4         | Brandon Sanderson |
+| 5         | J.R.R. Tolkien    |
+
+---
+
+## 1️⃣ **INNER JOIN – Most Common**
+> Returns rows where **both tables have matching values.**
+
+---
+
+# 🧠 Nested Queries (SUB-QUERIES)
+
+### ❓ **What is a Sub-query?**
+A query **inside another query**.
+
+### ❓ **Why use Sub-queries?**
+✔ When one result depends on another
+✔ When JOINs get messy
+✔ For filtering using another query
+✔ For using calculations inside a query
+
+### 🔢 **Types of Sub-queries**
+1. Sub-query in `WHERE`
+2. Sub-query in `SELECT`
+3. Sub-query in `FROM`
+4. Co-related sub-query
+
+---
+
+## 🔍 1️⃣ **Sub-query in WHERE (Most Important)**
+
+**Goal:** Get books with the **highest rating**
+
+### Step 1 — Find highest rating
+```sql
+SELECT MAX(rating) FROM library;
+```
+
+### Step 2 — Use inside another query
+```sql
+SELECT title, rating
+FROM library
+WHERE rating = (SELECT MAX(rating) FROM library);
+```
+
+✔ This returns **only top rated books**.
+
+---
+
+## 📊 2️⃣ **Sub-query in SELECT**
+Show each book + the **average price** of all books:
+
+```sql
+SELECT title, price,
+       (SELECT AVG(price) FROM library) AS avg_price_of_library
+FROM library;
+```
+
+👉 Every row will show **same average value**.
+
+---
+
+## 🔑 IN (Important)
+Used to **check if a value exists** in a list/query.
+
+---
+
+### ⚠️ REMEMBER
+| Concept | Purpose |
+|--------|---------|
+| **Foreign Key (FK)** | Connects tables |
+| **Joins** | Reads data across tables |
+| **PK–FK relationship** | Basis of all JOINs |
+
+---
+
+# 📦 SET Operations (Combining Queries)
+
+### 🔥 1. **UNION** → Removes duplicates
+```sql
+SELECT "name" FROM "translators"
+UNION
+SELECT "name" FROM "authors";
+```
+
+```sql
+SELECT 'author' AS "profession", "name" FROM "authors"
+UNION
+SELECT 'translator' AS "profession", "name" FROM "translators";
+```
+
+---
+
+### 🔥 2. **UNION ALL** → Keeps duplicates
+```sql
+SELECT 'author' AS "profession", "name" FROM "authors"
+UNION ALL
+SELECT 'translator' AS "profession", "name" FROM "translators";
+```
+
+---
+
+### 🔥 3. **INTERSECT** → Common rows only
+```sql
+SELECT "book_id" FROM "translated"
+WHERE "translator_id" = (
+      SELECT "id" FROM "translators" WHERE "name" = 'Sophie Hughes'
+)
+INTERSECT 
+SELECT "book_id" FROM "translated"
+WHERE "translator_id" = (
+      SELECT "id" FROM "translator" WHERE "name" = 'Margaret Jull Costa'
+);
+```
+
+```sql
+SELECT "name" FROM "authors"
+INTERSECT
+SELECT "name" FROM "translators";
+```
+
+---
+
+### 🔥 4. **EXCEPT / MINUS** → Rows from FIRST query **not in second**
+```sql
+SELECT "name" FROM "authors"
+EXCEPT
+SELECT "name" FROM "translators";
+```
