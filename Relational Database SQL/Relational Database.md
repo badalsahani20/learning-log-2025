@@ -235,7 +235,7 @@ SELECT "book_id" FROM "translated"
 WHERE "translator_id" = (
       SELECT "id" FROM "translators" WHERE "name" = 'Sophie Hughes'
 )
-INTERSECT 
+INTERSECT
 SELECT "book_id" FROM "translated"
 WHERE "translator_id" = (
       SELECT "id" FROM "translator" WHERE "name" = 'Margaret Jull Costa'
@@ -256,3 +256,171 @@ SELECT "name" FROM "authors"
 EXCEPT
 SELECT "name" FROM "translators";
 ```
+# SQL Notes
+
+## GROUP BY
+It groups rows based on one or more columns, and then can perform aggregate functions:
+
+1. COUNT()
+2. SUM()
+3. AVG()
+4. MAX()
+5. MIN()
+
+```
+SELECT AVG("rating") FROM "ratings";
+```
+Returns one single value → the average rating of all ratings in the table.
+
+```
+SELECT "book_id", AVG("rating") AS "average rating"
+FROM "ratings"
+GROUP BY "book_id";
+```
+
+Example: Find how many ratings each book has:
+
+```
+SELECT "book_id", COUNT("rating")
+FROM "ratings"
+GROUP BY "book_id";
+```
+
+---
+
+## HAVING
+A filter that works **after** GROUP BY.
+
+Example table: `ratings(book_id, rating)`
+
+❌ Wrong:
+```
+SELECT book_id, AVG(rating)
+FROM ratings
+WHERE AVG(rating) > 3;
+```
+
+✔ Correct:
+```
+SELECT book_id, AVG(rating)
+FROM ratings
+GROUP BY book_id
+HAVING AVG(rating) > 3;
+```
+
+### Practice Question 1
+Show each book_id and total ratings, only books with ≥ 5 ratings.
+
+```
+SELECT book_id, COUNT(rating) AS total_rating
+FROM ratings
+GROUP BY book_id
+HAVING total_rating >= 5
+ORDER BY total_rating DESC;
+```
+
+### Practice Question 2
+Average rating rounded to 1 decimal, only books ≥ 4.5 rating.
+
+```
+SELECT book_id, ROUND(AVG(rating),1) AS avg_rating
+FROM ratings
+GROUP BY book_id
+HAVING AVG(rating) >= 4.5
+ORDER BY avg_rating DESC;
+```
+
+### Practice Question 3
+Reviews per reviewer, only >10 reviews.
+
+```
+SELECT reviewer, COUNT(*) AS total_reviews
+FROM reviews
+GROUP BY reviewer
+HAVING COUNT(*) > 10
+ORDER BY total_reviews DESC;
+```
+
+---
+
+## Soft Deletion
+Soft delete marks a row as deleted instead of removing it.
+
+### Hard Delete
+```
+DELETE FROM users WHERE id = 10;
+```
+
+### Soft Delete
+Step 1:
+```
+ALTER TABLE users ADD is_deleted BOOLEAN DEFAULT FALSE;
+```
+
+Step 2:
+```
+UPDATE users SET is_deleted = TRUE WHERE id = 10;
+```
+
+Step 3: Fetch active rows
+```
+SELECT * FROM users WHERE is_deleted = FALSE;
+```
+
+### Soft Delete Trigger
+```
+CREATE TRIGGER soft_delete_user
+BEFORE DELETE ON users
+FOR EACH ROW
+BEGIN
+    UPDATE users
+    SET is_deleted = TRUE,
+        deleted_at = NOW()
+    WHERE id = OLD.id;
+
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Soft delete performed. Actual delete blocked.';
+END;
+```
+
+---
+
+## SQL Views
+A VIEW is a virtual table that shows saved query results.
+
+### Create View
+```
+CREATE VIEW fiction_books AS
+SELECT title, author
+FROM library
+WHERE genre = 'fiction';
+```
+
+### Join View
+```
+CREATE VIEW book_details AS
+SELECT library.title, library.author, publisher.name AS publisher_name
+FROM library
+JOIN publishers ON library.pub_id = publishers.id;
+```
+
+### Update View
+```
+CREATE OR REPLACE VIEW fiction_books AS
+SELECT title, author, year
+FROM library
+WHERE genre = 'fiction';
+```
+
+### Delete View
+```
+DROP VIEW fiction_books;
+```
+
+---
+
+## Why Use Views?
+- **Simplifying** complex queries
+- **Aggregating** data (SUM, COUNT, AVG)
+- **Partitioning** filtered data
+- **Securing** by hiding sensitive columns

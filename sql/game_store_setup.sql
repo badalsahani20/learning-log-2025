@@ -187,7 +187,7 @@ SELECT
     G.title AS Title,
     D.name AS Developer
 FROM games AS G
-LEFT JOIN developers AS D 
+LEFT JOIN developers AS D
 ON G.developer_id = D.developer_id;
 
 
@@ -219,7 +219,7 @@ GROUP BY g.title;
 
 -- ❓ Query: Calculate the total revenue earned by each developer across all their games. (Multi-JOIN and SUM)
 -- 💡 Result: Sums up revenue for all games that belong to a specific developer.
-SELECT 
+SELECT
     d.name AS Developer,
     SUM(g.price * pu.quantity) AS Total_revenue
 FROM developers AS d
@@ -232,11 +232,11 @@ GROUP BY d.name;
 
 -- ❓ Query: Calculate the total amount of money each player has spent, sorted from highest spender to lowest. (Multi-JOIN, SUM, and ORDER BY)
 -- 💡 Result: Provides a leaderboard of players based on their total spending.
-SELECT 
+SELECT
     p.username AS Player,
     SUM(pu.quantity * g.price) AS Total_Spent
 FROM purchases AS pu
-JOIN games AS g 
+JOIN games AS g
     ON g.game_id = pu.game_id
 JOIN players AS p
     ON p.player_id = pu.player_id
@@ -246,11 +246,196 @@ ORDER BY Total_Spent DESC;
 
 -- ❓ Query: Find all developers who have released more than one game. (GROUP BY with HAVING)
 -- 💡 Result: Filters the results of the COUNT aggregation. The WHERE clause cannot be used here because it filters rows before aggregation occurs.
-SELECT 
+SELECT
     d.name AS Developer,
     COUNT(g.game_id) AS Total_Games
 FROM developers AS d
 JOIN games AS g
     ON d.developer_id = g.developer_id
-GROUP BY d.name 
+GROUP BY d.name
 HAVING COUNT(g.game_id) > 1;
+
+# Advanced SQL Notes – Player, Games & Aggregations
+
+## 1️⃣ Total Money Spent + Games Purchased per Player
+```sql
+SELECT
+    p.username AS Player,
+    SUM(g.price * pu.quantity) AS Total_Spent,
+    COUNT(pu.quantity) AS Games_Bought
+FROM purchases AS pu
+JOIN games AS g ON g.game_id = pu.game_id
+JOIN players AS p ON p.player_id = pu.player_id
+GROUP BY p.username
+ORDER BY Total_Spent DESC;
+```
+
+## 2️⃣ Players Who Bought Games (GROUP BY)
+```sql
+SELECT
+    p.username AS Player,
+    COUNT(pu.game_id) AS Games_Bought
+FROM purchases AS pu
+JOIN players AS p ON pu.player_id = p.player_id
+GROUP BY p.username;
+```
+
+## 3️⃣ Players Who Bought More Than 2 Games (HAVING)
+```sql
+SELECT 
+    p.username AS Player,
+    COUNT(pu.game_id) AS Games_Bought
+FROM purchases AS pu
+JOIN players AS p ON pu.player_id = p.player_id
+GROUP BY p.username
+HAVING COUNT(pu.game_id) > 2;
+```
+
+## 4️⃣ Players Who Spent MORE Than Average Player Spending (Subquery)
+```sql
+SELECT
+    p.username AS Player,
+    SUM(g.price * pu.quantity) AS Total_Spending
+FROM purchases AS pu
+JOIN games AS g ON g.game_id = pu.game_id
+JOIN players AS p ON p.player_id = pu.player_id
+GROUP BY p.username
+HAVING SUM(g.price * pu.quantity) > (
+    SELECT AVG(total_spent)
+    FROM (
+        SELECT SUM(g.price * pu.quantity) AS total_spent
+        FROM purchases pu
+        JOIN games g ON g.game_id = pu.game_id
+        GROUP BY pu.player_id
+    ) AS sub
+);
+```
+
+## 5️⃣ Players Spending Above Average (CTE Version)
+```sql
+WITH player_spending AS (
+    SELECT
+        p.username,
+        SUM(g.price * pu.quantity) AS total_spent
+    FROM purchases pu
+    JOIN games g ON pu.game_id = g.game_id
+    JOIN players p ON p.player_id = pu.player_id
+    GROUP BY p.username
+)
+SELECT * FROM player_spending
+WHERE total_spent > (SELECT AVG(total_spent) FROM player_spending);
+```
+
+## 6️⃣ Show All Player Spendings (CTE)
+```sql
+WITH player_spending AS (
+    SELECT
+        p.username,
+        SUM(g.price * pu.quantity) AS total_spent
+    FROM purchases pu
+    JOIN games g ON g.game_id = pu.game_id
+    JOIN players p ON p.player_id = pu.player_id
+    GROUP BY p.username
+)
+SELECT * FROM player_spending;
+```
+
+## 7️⃣ CTE Filtering Players With Spending > 100
+```sql
+WITH player_spendings AS (
+    SELECT
+        p.username AS Players,
+        ROUND(SUM(g.price * pu.quantity), 2) AS Total_Spent
+    FROM purchases AS pu
+    JOIN games AS g ON g.game_id = pu.game_id
+    JOIN players AS p ON p.player_id = pu.player_id
+    GROUP BY p.username
+    HAVING Total_Spent > 100
+)
+SELECT * FROM player_spendings
+ORDER BY Total_Spent DESC;
+```
+
+## 8️⃣ Average Game Price Per Genre
+```sql
+SELECT
+    genre,
+    ROUND(AVG(price), 2) AS Average_Price
+FROM games
+GROUP BY genre;
+```
+
+## 9️⃣ Most Expensive Game in Each Genre (CTE)
+```sql
+WITH genre_max_price AS (
+    SELECT
+        genre,
+        MAX(price) AS highest_price
+    FROM games
+    GROUP BY genre
+)
+SELECT
+    g.title,
+    g.genre,
+    g.price
+FROM games g
+JOIN genre_max_price mp
+    ON g.genre = mp.genre
+   AND g.price = mp.highest_price;
+```
+
+## 🔟 VIEW – Player Details
+```sql
+CREATE VIEW player_details AS
+SELECT
+    p.username AS Players,
+    SUM(g.price * pu.quantity) AS Total_Spending,
+    COUNT(pu.game_id) AS Games_Bought
+FROM purchases AS pu
+JOIN games AS g ON g.game_id = pu.game_id
+JOIN players AS p ON p.player_id = pu.player_id
+GROUP BY p.username;
+
+SELECT * FROM player_details ORDER BY Total_Spending DESC;
+```
+
+## 1️⃣1️⃣ VIEW – High Spenders (>100)
+```sql
+CREATE VIEW high_spenders AS
+SELECT
+    player_id AS id,
+    username AS Name,
+    country AS Country
+FROM players
+WHERE player_id IN (
+    SELECT
+        pu.player_id
+    FROM purchases AS pu
+    JOIN games AS g ON g.game_id = pu.game_id
+    GROUP BY pu.player_id
+    HAVING SUM(g.price * pu.quantity) > 100
+);
+
+SELECT * FROM high_spenders;
+```
+
+Drop view:
+```sql
+DROP VIEW high_spenders;
+```
+
+## 1️⃣2️⃣ CTE – Total Spending + Games Bought
+```sql
+WITH total_spending AS (
+    SELECT
+        pu.player_id,
+        p.username,
+        SUM(g.price * pu.quantity) AS Total_Spent,
+        COUNT(pu.game_id) AS Games_Bought
+    FROM purchases AS pu
+    JOIN players AS p ON p.player_id = pu.player_id
+    JOIN games AS g ON g.game_id = pu.game_id
+    GROUP BY pu.player_id
+)
+SELECT * FROM total_spending;
+```
