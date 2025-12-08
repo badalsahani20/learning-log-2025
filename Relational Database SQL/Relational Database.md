@@ -424,3 +424,197 @@ DROP VIEW fiction_books;
 - **Aggregating** data (SUM, COUNT, AVG)
 - **Partitioning** filtered data
 - **Securing** by hiding sensitive columns
+
+# 🧠 Common Table Expressions (CTE) & SQL Views — Clean, Secure Notes
+
+## 🧠 What is a CTE?
+A **Common Table Expression (CTE)** is like a temporary table that exists only for one query.
+It is created using the `WITH` keyword and acts like a named query you can reuse inside another query.
+
+### 🧾 Syntax
+```sql
+WITH cte_name AS (
+      SELECT ...
+)
+SELECT * FROM cte_name;
+```
+
+---
+
+# 👁 SQL Views — Access, Security, Best Practices
+
+## 🔍 Do We Have Access to Information Using a VIEW?
+✔ **Yes!**
+A VIEW allows us to read/access data as if it were a table.
+We don’t touch the original table directly — we read data through the view.
+
+### Creating a View
+```sql
+CREATE VIEW public_books AS 
+SELECT title, author FROM library;
+```
+
+Now we can query it like a table:
+```sql
+SELECT * FROM public_books;
+```
+
+---
+
+## 🛡 SECURITY POINT
+A **VIEW can hide sensitive data** while still giving required access.
+
+### ❌ Without Security
+```sql
+SELECT * FROM users;
+```
+
+This may expose:
+```
+id | name | email | password | salary | phone
+```
+
+⚠ BAD PRACTICE!
+
+### ✔ Secure Way — Using VIEW
+```sql
+CREATE VIEW public_users AS 
+SELECT name, email
+FROM users;
+```
+
+Now users can:
+```sql
+SELECT * FROM public_users;
+```
+
+They will ONLY see:
+| name | email |
+|------|--------|
+
+Password, salary, phone = **HIDDEN 🔒**
+
+---
+
+## 🔍 Real-World Use Cases
+| Situation | Solution Using VIEW |
+|----------|----------------------|
+| Interns shouldn’t see salaries | View without salary column |
+| Admin panel needs summary | View with aggregations |
+| Clients should see only active data | View with `WHERE is_active = true` |
+| Prevent exposing passwords | Never include password in a view |
+
+---
+
+## 👮 Extra Security — GRANT & REVOKE
+
+### Grant access to a view
+```sql
+GRANT SELECT ON public_users TO normal_users;
+```
+
+✔ User can access the view
+❌ User **cannot** access the original table
+
+### Revoke table access
+```sql
+REVOKE SELECT ON users FROM normal_users;
+```
+
+This enforces a **Database Security Layer**:
+> “Show data ONLY through the view. Keep the original table safe.”
+
+---
+
+# 🧠 Summary: Why Views Improve SQL Security
+- Hide sensitive columns
+- Allow only selected data
+- Give access to view, NOT table
+- Prevent accidental leaks
+- Great for admin panels, APIs, backend apps
+
+---
+
+# 🗂 SQL Databases That Support View Permissions
+
+| Database | Supports GRANT? | Control View Access? |
+|----------|-----------------|-----------------------|
+| MySQL | ✔ Yes | ✔ Yes |
+| PostgreSQL | ✔ Yes | ✔ Yes |
+| SQL Server | ✔ Yes | ✔ Yes |
+| Oracle | ✔ Yes | ✔ Yes |
+| SQLite | ❌ No | ❌ No |
+
+### 🔒 SQLite Has NO Permission System
+SQLite is lightweight and file-based.
+No users, no passwords → **Cannot GRANT or REVOKE**.
+
+---
+
+# 🧹 Soft Deletion + Views (Clean & Secure Pattern)
+
+## ⚠ Problem:
+Soft-deleted data still appears in normal queries.
+
+## ✔ Solution:
+Use a **VIEW** to show only active (non-deleted) rows.
+
+### Step 1: Add soft delete columns
+```sql
+ALTER TABLE library
+ADD is_deleted BOOLEAN DEFAULT FALSE,
+ADD deleted_at DATETIME NULL;
+```
+
+### Step 2: Soft delete instead of hard delete
+```sql
+UPDATE library
+SET is_deleted = TRUE,
+    deleted_at = NOW()
+WHERE id = 10;
+```
+
+### Step 3: View for only active data
+```sql
+CREATE VIEW active_books AS 
+SELECT * FROM library WHERE is_deleted = FALSE;
+```
+
+Query:
+```sql
+SELECT * FROM active_books;
+```
+
+✔ Soft-deleted rows are hidden
+✔ Table remains clean
+✔ Frontend works like real delete
+
+---
+
+# 🧠 Bonus: Prevent Real DELETE with Trigger
+```sql
+CREATE TRIGGER prevent_hard_delete
+BEFORE DELETE ON library
+FOR EACH ROW
+BEGIN
+    UPDATE library
+    SET is_deleted = TRUE, deleted_at = NOW()
+    WHERE id = OLD.id;
+
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Hard delete blocked. Soft delete applied.';
+END;
+```
+
+Even if someone tries:
+```sql
+DELETE FROM library WHERE id = 10;
+```
+
+🔥 The row won't be deleted — it becomes soft-deleted automatically.
+
+---
+
+# ✅ Final Takeaway
+Views = **Security + Clean Data Access + Abstraction**
+Soft Deletes + Views = **Zero accidental data loss + cleaner backend architecture**
